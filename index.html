@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-mail — Aula de Informática</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#bfd2c1;
+  --paper-hi:#d2e0d3;
+  --paper-lo:#b1c6b4;
+  --ink:#0c0e0c;
+  --ink-3:rgba(12,14,12,.82);
+  --accent:#c12547;
+  --line:rgba(12,14,12,.3);
+  --ease:cubic-bezier(.77,0,.175,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:calc(.5rem + .4167vw)}
+@media(max-width:760px){html{font-size:calc(.62rem + .55vw)}}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Space Grotesk',sans-serif;
+  overflow:hidden;
+  height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent);color:var(--paper)}
+
+/* ---------- camadas fixas: grade, furos, moldura ---------- */
+.gridlayer{position:fixed;inset:0;z-index:0;pointer-events:none}
+.holes{position:fixed;left:1.1rem;top:0;bottom:0;z-index:1;pointer-events:none}
+.frame{
+  position:fixed;inset:1.4rem;z-index:2;pointer-events:none;
+  border:1px solid var(--line);
+}
+
+/* ---------- chrome: topo, rodapé ---------- */
+.chrome{position:fixed;z-index:40;font-family:'IBM Plex Mono',monospace;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase}
+.chrome.tl{top:2.3rem;left:3.6rem;display:flex;gap:1.4rem;align-items:baseline}
+.chrome.tl .dot{width:.45rem;height:.45rem;background:var(--accent);border-radius:50%;display:inline-block;transform:translateY(-.05rem)}
+.chrome.tr{top:2.3rem;right:2.6rem;color:var(--ink-3)}
+.chrome.bl{bottom:2.3rem;left:3.6rem;color:var(--ink-3)}
+.counter{
+  position:fixed;right:2.4rem;bottom:1.6rem;z-index:40;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;
+  font-size:2rem;line-height:1;display:flex;align-items:baseline;gap:.5rem;
+}
+.counter .total{font-size:.85rem;font-family:'IBM Plex Mono',monospace;color:var(--ink-3);letter-spacing:.1em}
+.ghostnum{
+  position:fixed;right:-1.5vw;bottom:-6vw;z-index:0;pointer-events:none;
+  font-weight:700;font-size:34vw;line-height:.78;letter-spacing:-.05em;
+  color:transparent;-webkit-text-stroke:1.5px rgba(12,14,12,.13);
+  transition:opacity .5s;
+}
+
+/* barra de progresso */
+.progress{position:fixed;left:0;bottom:0;height:5px;width:100%;z-index:50;background:transparent}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .8s var(--ease)}
+
+/* ---------- palco dos slides ---------- */
+.stage{position:fixed;inset:0;z-index:10}
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:6.5rem 9vw 6rem 12vw;
+  visibility:hidden;opacity:0;
+}
+.slide.active{visibility:visible;opacity:1;z-index:2}
+.slide.exit-left{animation:outL .8s var(--ease) both}
+.slide.exit-right{animation:outR .8s var(--ease) both}
+.slide.enter-left{animation:inL .8s var(--ease) both}
+.slide.enter-right{animation:inR .8s var(--ease) both}
+@keyframes inR{from{opacity:0;transform:translateX(2.4rem)}to{opacity:1;transform:none}}
+@keyframes outL{from{opacity:1;transform:none}to{opacity:0;transform:translateX(-2.4rem)}}
+@keyframes inL{from{opacity:0;transform:translateX(-2.4rem)}to{opacity:1;transform:none}}
+@keyframes outR{from{opacity:1;transform:none}to{opacity:0;transform:translateX(2.4rem)}}
+
+/* stagger de conteúdo */
+.slide .rev{opacity:0;transform:translateY(2.2rem)}
+body.instant .slide .rev{animation:none!important;opacity:1;transform:none}
+.slide.active .rev{animation:revUp .9s cubic-bezier(.19,1,.22,1) forwards}
+@keyframes revUp{to{opacity:1;transform:none}}
+.slide.active .rev:nth-child(1){animation-delay:.10s}
+.slide.active .rev:nth-child(2){animation-delay:.18s}
+.slide.active .rev:nth-child(3){animation-delay:.26s}
+.slide.active .rev:nth-child(4){animation-delay:.34s}
+.slide.active .rev:nth-child(5){animation-delay:.42s}
+.slide.active .rev:nth-child(6){animation-delay:.50s}
+.slide.active .rev:nth-child(7){animation-delay:.58s}
+.slide.active .rev:nth-child(8){animation-delay:.66s}
+
+/* ---------- tipografia ---------- */
+.kicker{
+  font-family:'IBM Plex Mono',monospace;font-size:.78rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:1.6rem;
+  display:flex;align-items:center;gap:.9rem;
+}
+.kicker::before{content:"";width:2.6rem;height:1px;background:var(--ink-3)}
+h1,h2{font-weight:700;letter-spacing:-.03em;line-height:.98}
+.h-xl{font-size:clamp(3.2rem,9.5vw,10.5rem)}
+.h-lg{font-size:clamp(2.4rem,5.6vw,6rem)}
+.h-md{font-size:clamp(1.9rem,3.8vw,4rem)}
+em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;letter-spacing:-.01em}
+.accent{color:var(--accent)}
+.lead{font-size:clamp(1.1rem,1.55vw,1.6rem);line-height:1.5;max-width:34em;color:var(--ink);font-weight:500}
+.lead b{font-weight:700}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ---------- componentes ---------- */
+.rule{height:1px;background:var(--line);margin:1.8rem 0}
+.tag{
+  display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;
+  letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--ink);
+  padding:.32rem .7rem;border-radius:99px;
+}
+.tag.solid{background:var(--ink);color:var(--paper)}
+.tag.red{border-color:var(--accent);color:var(--accent)}
+
+.callout{
+  border:1px solid var(--ink);background:var(--paper-hi);
+  padding:1.4rem 1.7rem;position:relative;max-width:44rem;
+}
+.callout::before{
+  content:"";position:absolute;inset:.35rem;border:1px dashed var(--line);pointer-events:none;
+}
+.callout .lbl{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+
+.numlist{list-style:none;display:flex;flex-direction:column}
+.numlist li{
+  display:flex;align-items:baseline;gap:1.6rem;
+  padding:.85rem 0;border-bottom:1px solid var(--line);
+}
+.numlist li:first-child{border-top:1px solid var(--line)}
+.numlist .n{
+  font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--accent);
+  min-width:2.2rem;
+}
+.numlist .t{font-weight:700;font-size:1.28rem;min-width:11rem;letter-spacing:-.01em}
+.numlist .d{color:var(--ink-3);font-size:1.1rem;line-height:1.45}
+
+/* grade de vantagens (ritmo 2+3 assimétrico) */
+.vgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:.85rem;margin-top:.4rem}
+.vcard{
+  border:1px solid var(--ink);padding:.95rem 1.1rem 1.05rem;background:var(--paper);
+  display:flex;flex-direction:column;gap:.5rem;min-height:7.7rem;position:relative;
+  transition:background .35s,transform .35s;
+}
+.vcard:hover{background:var(--paper-hi);transform:translateY(-.3rem)}
+.vcard:nth-child(1){grid-column:span 3}.vcard:nth-child(2){grid-column:span 2}
+.vcard:nth-child(3){grid-column:span 2}.vcard:nth-child(4){grid-column:span 3}
+.vcard:nth-child(5){grid-column:span 2}.vcard:nth-child(6){grid-column:span 3}
+.vcard:nth-child(7){grid-column:span 3}.vcard:nth-child(8){grid-column:span 2}
+.vcard .vn{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.15em}
+.vcard .vt{font-weight:700;font-size:1.45rem;letter-spacing:-.015em;line-height:1.05}
+.vcard .vd{font-size:1rem;line-height:1.45;color:var(--ink-3)}
+
+/* anatomia do endereço */
+.addr{
+  display:flex;align-items:baseline;flex-wrap:wrap;
+  font-weight:700;font-size:clamp(2rem,5.2vw,5.4rem);letter-spacing:-.03em;line-height:1.1;
+}
+.addr .at{color:var(--accent);font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;padding:0 .1em}
+.addr .seg{position:relative;padding:0 .12em}
+.addr .seg i{
+  position:absolute;left:.12em;right:.12em;bottom:-.35em;height:2px;background:currentColor;opacity:.35;
+}
+.legend{display:flex;gap:2.6rem;flex-wrap:wrap;margin-top:2.6rem}
+.legend .item{max-width:15rem}
+.legend .swatch{font-weight:700;font-size:1.14rem;margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem}
+.legend .swatch::before{content:"";width:1.6rem;height:2px;background:currentColor}
+.legend p{font-size:1rem;line-height:1.5;color:var(--ink-3)}
+
+/* versus */
+.versus{display:flex;flex-direction:column;margin-top:.2rem}
+.vs-head,.vs-row{display:grid;grid-template-columns:9.5rem 1fr 1fr;gap:1.6rem;align-items:baseline}
+.vs-head{padding-bottom:.7rem;border-bottom:2px solid var(--ink)}
+.vs-head .colh{font-weight:700;font-size:1.5rem;letter-spacing:-.02em;display:flex;align-items:center;gap:.7rem}
+.vs-row{padding:.68rem 0;border-bottom:1px solid var(--line)}
+.vs-row .crit{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.vs-row .mail{font-weight:500;font-size:1.1rem;line-height:1.4}
+.vs-row .zap{font-size:1.06rem;line-height:1.4;color:var(--ink-3)}
+.vs-row .mail b{font-weight:700}
+
+/* dinâmica */
+.duo{display:grid;grid-template-columns:1fr 1.35fr;gap:1.4rem;align-items:stretch;margin-top:.4rem}
+.panel{border:1px solid var(--ink);padding:1.3rem 1.5rem;background:var(--paper);position:relative}
+.panel .ph{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center}
+.panel.zap .ph{color:var(--ink-3)}
+.panel.mail .ph{color:var(--accent)}
+.zapmsg{
+  background:var(--paper-hi);border:1px solid var(--line);border-radius:.9rem .9rem .9rem .15rem;
+  padding:.8rem 1.05rem;font-size:1.14rem;max-width:78%;margin-bottom:.6rem;
+}
+.zapmsg small{display:block;text-align:right;font-size:.62rem;color:var(--ink-3);margin-top:.25rem;font-family:'IBM Plex Mono',monospace}
+.maildoc{font-size:.98rem;line-height:1.5}
+.maildoc .mrow{padding:.45rem 0;border-bottom:1px dashed var(--line)}
+.maildoc .mrow b{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-right:.6rem}
+.maildoc .body{padding-top:.8rem}
+.arrowmid{align-self:center;justify-self:center}
+
+/* capa */
+.cover-at{
+  position:absolute;right:4vw;top:50%;transform:translateY(-52%);
+  width:min(30vw,26rem);z-index:0;opacity:.95;
+}
+.titlestack{position:relative;z-index:1}
+.cover-meta{
+  display:flex;gap:1rem;margin-top:2.6rem;flex-wrap:wrap;
+}
+
+/* resumo */
+.take{display:flex;flex-direction:column;gap:0}
+.take li{
+  list-style:none;display:flex;gap:2rem;align-items:baseline;
+  padding:1.35rem 0;border-bottom:1px solid var(--line);
+}
+.take li:first-child{border-top:1px solid var(--line)}
+.take .tn{font-family:'IBM Plex Mono',monospace;color:var(--accent);font-size:.85rem}
+.take .tt{font-size:clamp(1.3rem,2.2vw,2.1rem);font-weight:700;letter-spacing:-.02em;line-height:1.15}
+
+/* janela de e-mail (anatomia da mensagem) */
+.mailwin{border:1px solid var(--ink);background:var(--paper-hi)}
+.mailwin .bar{display:flex;align-items:center;gap:.45rem;padding:.6rem .9rem;border-bottom:1px solid var(--ink)}
+.mailwin .bar b{width:.6rem;height:.6rem;border-radius:50%;border:1px solid var(--ink)}
+.mailwin .bar b:first-child{background:var(--accent);border-color:var(--accent)}
+.mailwin .bar span{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.mfield{display:flex;align-items:baseline;gap:.9rem;padding:.6rem 1rem;border-bottom:1px dashed var(--line);font-size:1.03rem}
+.mfield .fk{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);min-width:4.4rem;font-weight:500}
+.mfield .fb{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--accent)}
+.mfield .fv.dim{color:var(--ink-3)}
+.mbody{padding:.85rem 1rem;font-size:1rem;line-height:1.55;color:var(--ink-3)}
+.chip{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--ink);padding:.32rem .7rem;font-family:'IBM Plex Mono',monospace;font-size:.68rem;background:var(--paper)}
+.fieldnotes{display:flex;flex-direction:column}
+.fieldnotes .fn{display:flex;gap:.9rem;padding:.66rem 0;border-bottom:1px solid var(--line);align-items:baseline}
+.fieldnotes .fn:first-child{border-top:1px solid var(--line)}
+.fieldnotes .fb{font-family:'IBM Plex Mono',monospace;color:var(--accent);font-size:.72rem;min-width:1.7rem}
+.fieldnotes .ft{font-weight:700;font-size:1.02rem;min-width:5.2rem}
+.fieldnotes .fd{font-size:.97rem;color:var(--ink-3);line-height:1.45}
+
+/* provedores */
+.prov{display:grid;grid-template-columns:1fr 1fr;gap:1.3rem;margin-top:1.5rem}
+.provcard{border:1px solid var(--ink);padding:1.3rem 1.5rem 1.1rem;background:var(--paper);display:flex;flex-direction:column;transition:background .35s}
+.provcard:hover{background:var(--paper-hi)}
+.provcard .phead{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:.65rem;margin-bottom:.4rem}
+.provcard .pname{font-weight:700;font-size:1.65rem;letter-spacing:-.02em}
+.provcard .paddr{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--accent)}
+.provcard ul{list-style:none;display:flex;flex-direction:column}
+.provcard li{padding:.62rem 0;border-bottom:1px solid var(--line);font-size:1.02rem;line-height:1.48;display:flex;gap:.7rem;align-items:baseline}
+.provcard li:last-child{border-bottom:none}
+.provcard li::before{content:"—";color:var(--accent);font-family:'IBM Plex Mono',monospace;flex:none}
+.provcard li b{font-weight:700}
+
+/* checklist da atividade */
+.check{list-style:none;display:flex;flex-direction:column;margin-top:1.2rem;max-width:58rem}
+.check li{display:flex;gap:1.2rem;align-items:baseline;padding:.72rem 0;border-bottom:1px solid var(--line)}
+.check li:first-child{border-top:1px solid var(--line)}
+.check .box{width:1rem;height:1rem;border:1.5px solid var(--ink);flex:none;transform:translateY(.12rem)}
+.check .ct{font-weight:700;font-size:1.2rem;min-width:15.5rem;letter-spacing:-.01em}
+.check .cd{color:var(--ink-3);font-size:1.04rem;line-height:1.45}
+
+/* quiz */
+.quiz{border:1px solid var(--ink);background:var(--paper-hi);padding:1.4rem 1.7rem 1.2rem;max-width:54rem;position:relative}
+.quiz::before{content:"";position:absolute;inset:.35rem;border:1px dashed var(--line);pointer-events:none}
+.quiz .qstep{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
+.quiz .qq{font-weight:700;font-size:1.3rem;letter-spacing:-.01em;line-height:1.25;margin-bottom:1rem;max-width:30em}
+.qopt{display:flex;justify-content:space-between;align-items:center;gap:1rem;width:100%;text-align:left;background:var(--paper);border:1px solid var(--ink);padding:.75rem 1rem;font-family:'Space Grotesk',sans-serif;font-size:1.08rem;color:var(--ink);cursor:pointer;margin-bottom:.55rem;transition:transform .25s,background .25s,color .25s,opacity .25s}
+.qopt:hover:not(:disabled){transform:translateX(.35rem)}
+.qopt .mark{font-family:'IBM Plex Mono',monospace;font-size:.8rem}
+.qopt.right{background:var(--ink);color:var(--paper)}
+.qopt.right .mark{color:var(--accent)}
+.qopt.wrong{opacity:.4;text-decoration:line-through}
+.qopt:disabled{cursor:default}
+.qfeed{font-size:1.02rem;line-height:1.5;color:var(--ink);margin-top:.3rem;min-height:1.5rem}
+.qfeed b{color:var(--accent)}
+.qnext{margin-top:.6rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:.5rem 1rem;border-radius:99px;transition:background .3s,color .3s}
+.qnext:hover{background:var(--paper);color:var(--ink)}
+
+/* navegação */
+.navbtn{
+  position:fixed;top:50%;transform:translateY(-50%);z-index:60;
+  width:3.2rem;height:3.2rem;border-radius:50%;border:1px solid var(--ink);
+  background:var(--paper);color:var(--ink);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s,color .3s;font-size:1.14rem;
+}
+.navbtn:hover{background:var(--ink);color:var(--paper)}
+.navbtn.prev{left:2.2rem}
+.navbtn.next{right:2.2rem}
+.hint{
+  position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:40;
+  font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-3);
+  transition:opacity 1s;
+}
+.fsbtn{
+  position:fixed;bottom:4.6rem;right:2.4rem;z-index:60;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  border:1px solid var(--ink);background:transparent;color:var(--ink);
+  padding:.4rem .8rem;border-radius:99px;transition:background .3s,color .3s;
+}
+.fsbtn:hover{background:var(--ink);color:var(--paper)}
+
+@media(max-width:900px){
+  .slide{padding:5.5rem 7vw 6rem 14vw}
+  .duo{grid-template-columns:1fr}
+  .vgrid{grid-template-columns:repeat(2,1fr)}
+  .vcard{grid-column:span 1 !important;min-height:0}
+  .vs-head,.vs-row{grid-template-columns:6.5rem 1fr 1fr;gap:.8rem}
+  .numlist .t{min-width:0}
+  .numlist li{flex-wrap:wrap;gap:.4rem .9rem}
+  .cover-at{display:none}
+  .ghostnum{display:none}
+  .navbtn{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- grade pautada + furos de fichário -->
+<svg class="gridlayer" id="gridlayer" preserveAspectRatio="none"></svg>
+<svg class="holes" id="holes" width="14"></svg>
+<div class="frame"></div>
+
+<!-- chrome fixo -->
+<div class="chrome tl"><span class="dot"></span><span>Aula de Informática</span><span style="color:var(--ink-3)">/ Comunicação digital</span></div>
+<div class="chrome tr">Prof. Victor · Turma RJ</div>
+<div class="chrome bl">E-mail · conceito, uso empresarial e criação de contas</div>
+<div class="counter"><span id="curnum">01</span><span class="total">/ 14</span></div>
+<div class="ghostnum" id="ghost">01</div>
+<button class="fsbtn" id="fsbtn">Tela cheia [F]</button>
+
+<div class="progress"><i id="bar"></i></div>
+
+<main class="stage" id="stage">
+
+<!-- 1 · CAPA -->
+<section class="slide" data-label="Abertura">
+  <svg class="cover-at" viewBox="0 0 300 300" fill="none">
+    <circle cx="150" cy="150" r="118" stroke="#0c0e0c" stroke-width="7"/>
+    <circle cx="150" cy="150" r="126" stroke="#0c0e0c" stroke-width="2" stroke-dasharray="2 7" opacity=".45"/>
+    <path d="M150 198c-31 0-52-20-52-48s21-48 52-48 52 20 52 48c0 24-13 36-26 36-9 0-15-6-15-15" stroke="#0c0e0c" stroke-width="7" stroke-linecap="round"/>
+    <path d="M161 150c0 7-4 13-11 13s-12-6-12-13 5-13 12-13 11 6 11 13v22" stroke="#0c0e0c" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="150" cy="150" r="140" stroke="#db3356" stroke-width="2.5" stroke-dasharray="1 12"/>
+  </svg>
+  <div class="titlestack">
+    <div class="kicker rev">Aula de hoje</div>
+    <h1 class="h-xl rev">Correio<br><em class="accent">eletrônico</em></h1>
+    <div class="rule rev" style="max-width:26rem"></div>
+    <p class="lead rev">O que é <b>e-mail</b>, quais as suas <b>vantagens</b>, como ele se diferencia do <em>WhatsApp</em> — e por que toda empresa usa.</p>
+    <div class="cover-meta rev">
+      <span class="tag solid">Informática</span>
+      <span class="tag">Teoria + prática</span>
+      <span class="tag red">14 telas · criaremos 2 contas hoje</span>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · O QUE É -->
+<section class="slide" data-label="Conceito">
+  <div class="kicker rev">01 · Conceito</div>
+  <h2 class="h-lg rev">O que é <em class="accent">e-mail?</em></h2>
+  <div class="rule rev" style="max-width:34rem"></div>
+  <p class="lead rev">É o serviço de <b>correio eletrônico</b>: permite <b>enviar e receber mensagens e arquivos</b> pela internet, de forma organizada e com <b>registro permanente</b> de tudo o que foi dito.</p>
+  <div class="callout rev" style="margin-top:2.2rem">
+    <div class="lbl">Pense assim</div>
+    <p class="lead" style="font-size:1.25rem">É uma <em>carta</em> que chega em <b>segundos</b>, para qualquer lugar do mundo, <b>de graça</b> — e que fica <b>guardada para sempre</b>.</p>
+  </div>
+</section>
+
+<!-- 3 · ANATOMIA -->
+<section class="slide" data-label="Anatomia">
+  <div class="kicker rev">02 · O endereço</div>
+  <h2 class="h-md rev">Todo endereço tem a mesma <em>estrutura</em></h2>
+  <div class="addr rev" style="margin-top:2.4rem">
+    <span class="seg" style="color:var(--ink)">maria.silva<i></i></span><span class="at">@</span><span class="seg" style="color:var(--accent)">empresa<i></i></span><span class="seg" style="color:var(--ink-3)">.com.br<i></i></span>
+  </div>
+  <div class="legend rev">
+    <div class="item">
+      <div class="swatch" style="color:var(--ink)">Usuário</div>
+      <p>Quem você é. O nome da caixa de entrada — pessoa ou setor (ex.: <span class="mono">vendas</span>).</p>
+    </div>
+    <div class="item">
+      <div class="swatch" style="color:var(--accent)">@ · arroba</div>
+      <p>Do inglês <em>at</em> (“em”). Separa <b>quem</b> recebe de <b>onde</b> está a caixa.</p>
+    </div>
+    <div class="item">
+      <div class="swatch" style="color:var(--ink-3)">Domínio</div>
+      <p>O provedor: <span class="mono">gmail.com</span>, <span class="mono">outlook.com</span> — ou o <b>domínio próprio</b> da empresa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · ANATOMIA DA MENSAGEM -->
+<section class="slide" data-label="Campos do e-mail">
+  <div class="kicker rev">03 · A mensagem</div>
+  <h2 class="h-md rev">Os campos de um <em class="accent">e-mail</em></h2>
+  <div class="rev" style="display:grid;grid-template-columns:1.2fr 1fr;gap:2.4rem;margin-top:1.6rem;align-items:start;max-width:72rem">
+    <div class="mailwin">
+      <div class="bar"><b></b><b></b><b></b><span>Nova mensagem</span></div>
+      <div class="mfield"><span class="fk">Para</span><span class="fv">joao@empresa.com.br</span><span class="fb">01</span></div>
+      <div class="mfield"><span class="fk">Cc</span><span class="fv dim">equipe@empresa.com.br</span><span class="fb">02</span></div>
+      <div class="mfield"><span class="fk">Cco</span><span class="fv dim">(ninguém vê quem está aqui)</span><span class="fb">03</span></div>
+      <div class="mfield"><span class="fk">Assunto</span><span class="fv">Relatório de vendas — julho</span><span class="fb">04</span></div>
+      <div class="mbody">Prezado João, bom dia. Segue em anexo o relatório…<br><br>
+        <span class="chip"><svg width="10" height="11" viewBox="0 0 10 12" fill="none"><path d="M7.5 4.5 4.2 7.8c-.6.6-1.6.6-2.2 0-.6-.6-.6-1.6 0-2.2L6.8 1c1-1 2.6-1 3.6 0" stroke="#0c0e0c" stroke-width="1.2" stroke-linecap="round" transform="translate(-3 1)"/></svg>relatorio-vendas-julho.pdf</span>
+        <span class="fb" style="display:inline;margin-left:.6rem">05</span>
+      </div>
+    </div>
+    <div class="fieldnotes">
+      <div class="fn"><span class="fb">01</span><span class="ft">Para</span><span class="fd">Destinatário principal — quem deve responder ou agir.</span></div>
+      <div class="fn"><span class="fb">02</span><span class="ft">Cc</span><span class="fd">Cópia: quem só precisa acompanhar a conversa.</span></div>
+      <div class="fn"><span class="fb">03</span><span class="ft">Cco</span><span class="fd">Cópia oculta: recebe sem que os outros saibam.</span></div>
+      <div class="fn"><span class="fb">04</span><span class="ft">Assunto</span><span class="fd">O título do e-mail — claro, essencial para achar depois.</span></div>
+      <div class="fn"><span class="fb">05</span><span class="ft">Anexo</span><span class="fd">Arquivos que viajam juntos: PDFs, planilhas, fotos.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · VANTAGENS -->
+<section class="slide" data-label="Vantagens">
+  <div class="kicker rev">04 · Vantagens</div>
+  <h2 class="h-md rev">Por que o e-mail ainda é <em class="accent">imbatível</em></h2>
+  <div class="vgrid rev" style="margin-top:1.8rem">
+    <div class="vcard"><span class="vn">01</span><span class="vt">Gratuito</span><span class="vd">Enviar não custa nada — nem para o outro lado do mundo.</span></div>
+    <div class="vcard"><span class="vn">02</span><span class="vt">Rápido</span><span class="vd">Chega em segundos.</span></div>
+    <div class="vcard"><span class="vn">03</span><span class="vt">Registrado</span><span class="vd">Nada se perde: o histórico serve como prova.</span></div>
+    <div class="vcard"><span class="vn">04</span><span class="vt">Com anexos</span><span class="vd">Documentos, planilhas, fotos e contratos.</span></div>
+    <div class="vcard"><span class="vn">05</span><span class="vt">Organizado</span><span class="vd">Pastas, marcadores e busca por palavra-chave.</span></div>
+    <div class="vcard"><span class="vn">06</span><span class="vt">Formal</span><span class="vd">Adequado a assuntos sérios e profissionais.</span></div>
+    <div class="vcard"><span class="vn">07</span><span class="vt">Assíncrono</span><span class="vd">Cada um responde quando puder, sem pressão de “online agora”.</span></div>
+    <div class="vcard"><span class="vn">08</span><span class="vt">1 → muitos</span><span class="vd">Cc e Cco: uma mensagem, vários destinos.</span></div>
+  </div>
+</section>
+
+<!-- 5 · VERSUS -->
+<section class="slide" data-label="E-mail × WhatsApp">
+  <div class="kicker rev">05 · Comparativo</div>
+  <h2 class="h-md rev">E-mail <em class="accent">×</em> WhatsApp</h2>
+  <div class="versus rev" style="margin-top:1.6rem">
+    <div class="vs-head">
+      <span></span>
+      <span class="colh"><span class="tag solid" style="font-size:.6rem">E-mail</span></span>
+      <span class="colh" style="color:var(--ink-3)"><span class="tag" style="font-size:.6rem;border-color:var(--ink-3);color:var(--ink-3)">WhatsApp</span></span>
+    </div>
+    <div class="vs-row"><span class="crit">Finalidade</span><span class="mail"><b>Formal</b> e profissional</span><span class="zap">Rápida e informal</span></div>
+    <div class="vs-row"><span class="crit">Registro</span><span class="mail"><b>Organizado</b>, pesquisável, permanente</span><span class="zap">Se perde no meio das conversas</span></div>
+    <div class="vs-row"><span class="crit">Anexos</span><span class="mail">Documentos <b>grandes, com contexto</b></span><span class="zap">Arquivos “somem” no chat</span></div>
+    <div class="vs-row"><span class="crit">Tom</span><span class="mail">Saudação, <b>assunto</b> e assinatura</span><span class="zap">Áudios, emojis, abreviações</span></div>
+    <div class="vs-row"><span class="crit">Cobrança</span><span class="mail">Resposta <b>no tempo da pessoa</b></span><span class="zap">Expectativa de resposta imediata</span></div>
+    <div class="vs-row"><span class="crit">Estrutura</span><span class="mail">Assunto claro, remetente identificado</span><span class="zap">Mensagens soltas, sem hierarquia</span></div>
+  </div>
+</section>
+
+<!-- 6 · EMPRESAS -->
+<section class="slide" data-label="Uso empresarial">
+  <div class="kicker rev">06 · No trabalho</div>
+  <h2 class="h-md rev">Por que toda <em class="accent">empresa</em> usa e-mail</h2>
+  <ol class="numlist rev" style="margin-top:1.4rem;max-width:62rem">
+    <li><span class="n">01</span><span class="t">Profissionalismo</span><span class="d">joao@empresa.com.br passa credibilidade; WhatsApp é visto como pessoal.</span></li>
+    <li><span class="n">02</span><span class="t">Documento oficial</span><span class="d">Decisões, orçamentos e contratos ficam “por escrito” — com valor de registro.</span></li>
+    <li><span class="n">03</span><span class="t">Organização</span><span class="d">Pastas por projeto, cliente ou setor — nada vira uma conversa só.</span></li>
+    <li><span class="n">04</span><span class="t">Padrão externo</span><span class="d">Com clientes, fornecedores e órgãos públicos, o e-mail é o canal esperado.</span></li>
+    <li><span class="n">05</span><span class="t">Rastreabilidade</span><span class="d">Sabe-se quem enviou, quando e para quem — essencial em auditorias.</span></li>
+    <li><span class="n">06</span><span class="t">Separação</span><span class="d">Trabalho de um lado, vida pessoal do outro.</span></li>
+  </ol>
+</section>
+
+<!-- 7 · DINÂMICA -->
+<section class="slide" data-label="Dinâmica">
+  <div class="kicker rev">07 · Dinâmica</div>
+  <h2 class="h-md rev">Do <em>zap</em> para o <em class="accent">e-mail</em></h2>
+  <div class="duo rev" style="margin-top:1.6rem">
+    <div class="panel zap">
+      <div class="ph"><span>Assim não</span><span>✕</span></div>
+      <div class="zapmsg">e aí, manda o negócio lá<small>10:42</small></div>
+      <div class="zapmsg">valeu!!<small>10:42</small></div>
+      <p style="font-size:.98rem;color:var(--ink-3);margin-top:.8rem;line-height:1.45">Sem assunto, sem contexto, sem registro claro do que foi pedido.</p>
+    </div>
+    <div class="panel mail">
+      <div class="ph"><span>Assim sim</span><span>✓</span></div>
+      <div class="maildoc">
+        <div class="mrow"><b>Assunto</b>Solicitação de relatório de vendas</div>
+        <div class="body">Prezado João, bom dia.<br><br>
+        Solicito o envio do <b>relatório de vendas de julho</b> até sexta-feira.<br><br>
+        Atenciosamente,<br><em>Maria</em></div>
+      </div>
+    </div>
+  </div>
+  <div class="callout rev" style="margin-top:1.6rem;max-width:none">
+    <div class="lbl">Sua vez</div>
+    <p class="lead" style="font-size:1.12rem">Reescreva como e-mail profissional: <em>“prof, manda a tarefa de hj q perdi a aula”</em> — com <b>assunto</b>, <b>saudação</b>, <b>pedido</b> e <b>despedida</b>.</p>
+  </div>
+</section>
+
+<!-- 9 · PROVEDORES -->
+<section class="slide" data-label="Gmail × Outlook">
+  <div class="kicker rev">08 · Provedores</div>
+  <h2 class="h-md rev">Dois gigantes, <em class="accent">duas contas</em></h2>
+  <div class="prov rev">
+    <div class="provcard">
+      <div class="phead"><span class="pname">Gmail</span><span class="paddr">@gmail.com</span></div>
+      <ul>
+        <li><span><b>O mais aceito da internet:</b> inscrições em sites, programas, cursos e concursos pedem e-mail — e o Gmail é aceito em todos.</span></li>
+        <li><span>Funciona como <b>identidade digital</b>: “entrar com Google” dispensa novos cadastros.</span></li>
+        <li><span>Gratuito, com <b>Drive, Documentos e Fotos</b> inclusos.</span></li>
+      </ul>
+    </div>
+    <div class="provcard">
+      <div class="phead"><span class="pname">Outlook</span><span class="paddr">@outlook.com</span></div>
+      <ul>
+        <li><span><b>Porta de entrada do Office 365 na web:</b> Word, Excel e PowerPoint no navegador, de graça e sem instalar nada.</span></li>
+        <li><span>Inclui <b>OneDrive</b> para guardar arquivos na nuvem.</span></li>
+        <li><span>Muito usado no <b>ambiente corporativo</b>.</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout rev" style="margin-top:1.5rem;max-width:none">
+    <div class="lbl">Nossa estratégia</div>
+    <p class="lead" style="font-size:1.12rem">Ter <b>as duas contas</b>: o Gmail como <b>identidade para inscrições</b> e o Outlook como <b>chave do Office 365</b> na web.</p>
+  </div>
+</section>
+
+<!-- 10 · CRIAR GMAIL -->
+<section class="slide" data-label="Criar conta Gmail">
+  <div class="kicker rev">09 · Prática I</div>
+  <h2 class="h-md rev">Criando a conta do <em class="accent">Gmail</em></h2>
+  <ol class="numlist rev" style="margin-top:1.3rem;max-width:62rem">
+    <li><span class="n">01</span><span class="t">Acesse</span><span class="d">Entre em <span class="mono">gmail.com</span> e clique em <b>“Criar conta”</b> → “Para uso pessoal”.</span></li>
+    <li><span class="n">02</span><span class="t">Seus dados</span><span class="d">Nome, sobrenome e data de nascimento — informações verdadeiras.</span></li>
+    <li><span class="n">03</span><span class="t">Escolha o endereço</span><span class="d">Será o seu <span class="mono">@gmail.com</span>. Dica: <b>nome.sobrenome</b>, sério e fácil de digitar.</span></li>
+    <li><span class="n">04</span><span class="t">Senha forte</span><span class="d">8+ caracteres, misturando letras, números e símbolos. <b>Anote em papel!</b></span></li>
+    <li><span class="n">05</span><span class="t">Telefone</span><span class="d">Confirme o número: é a sua <b>recuperação de senha</b>.</span></li>
+    <li><span class="n">06</span><span class="t">Pronto</span><span class="d">Aceite os termos e a caixa de entrada se abre.</span></li>
+  </ol>
+  <div class="callout rev" style="margin-top:1.5rem;max-width:62rem">
+    <div class="lbl">Endereço vale currículo</div>
+    <p class="lead" style="font-size:1.14rem"><span class="mono">maria.silva@gmail.com</span> passa seriedade. Apelidos e números aleatórios, <b>não</b>.</p>
+  </div>
+</section>
+
+<!-- 11 · CRIAR OUTLOOK -->
+<section class="slide" data-label="Criar conta Outlook">
+  <div class="kicker rev">10 · Prática II</div>
+  <h2 class="h-md rev">Criando a conta do <em class="accent">Outlook</em></h2>
+  <ol class="numlist rev" style="margin-top:1.3rem;max-width:62rem">
+    <li><span class="n">01</span><span class="t">Acesse</span><span class="d">Entre em <span class="mono">outlook.com</span> e clique em <b>“Criar conta gratuita”</b>.</span></li>
+    <li><span class="n">02</span><span class="t">Escolha o endereço</span><span class="d">Um novo nome <span class="mono">@outlook.com</span> — pode ser o mesmo padrão do Gmail.</span></li>
+    <li><span class="n">03</span><span class="t">Senha forte</span><span class="d">Mesmo cuidado de antes — e <b>diferente</b> da senha do Gmail.</span></li>
+    <li><span class="n">04</span><span class="t">Seus dados</span><span class="d">Nome, país e data de nascimento.</span></li>
+    <li><span class="n">05</span><span class="t">Verificação</span><span class="d">Resolva o captcha ou confirme o telefone.</span></li>
+    <li><span class="n">06</span><span class="t">Office liberado</span><span class="d">No menu de aplicativos, abra o <b>Word, Excel e PowerPoint</b> na web.</span></li>
+  </ol>
+  <div class="callout rev" style="margin-top:1.5rem;max-width:62rem">
+    <div class="lbl">Por que essa conta importa</div>
+    <p class="lead" style="font-size:1.14rem">É ela que libera o <b>Office 365 na web</b>: documentos na nuvem, sem instalar programa nenhum.</p>
+  </div>
+</section>
+
+<!-- 12 · ATIVIDADE -->
+<section class="slide" data-label="Atividade prática">
+  <div class="kicker rev">11 · Mão na massa</div>
+  <h2 class="h-md rev">Hoje é dia de <em class="accent">criar</em></h2>
+  <ul class="check rev">
+    <li><span class="box"></span><span class="ct">Criar a conta do Gmail</span><span class="cd">Seu endereço oficial para inscrições.</span></li>
+    <li><span class="box"></span><span class="ct">Criar a conta do Outlook</span><span class="cd">Sua chave para o Office 365 na web.</span></li>
+    <li><span class="box"></span><span class="ct">Enviar o primeiro e-mail</span><span class="cd">Do Gmail para o colega — com assunto, saudação e assinatura.</span></li>
+    <li><span class="box"></span><span class="ct">Abrir o Word na web</span><span class="cd">Com a conta Outlook: escreva três linhas e salve o documento.</span></li>
+    <li><span class="box"></span><span class="ct">Responder o colega</span><span class="cd">Usando o botão “Responder”, sem criar mensagem nova.</span></li>
+  </ul>
+  <div class="callout rev" style="margin-top:1.6rem;max-width:58rem">
+    <div class="lbl">Meta da aula</div>
+    <p class="lead" style="font-size:1.1rem"><b>2 contas</b> criadas · <b>1 e-mail</b> enviado e respondido · <b>1 documento</b> no Office 365.</p>
+  </div>
+</section>
+
+<!-- 13 · QUIZ -->
+<section class="slide" data-label="Quiz">
+  <div class="kicker rev">12 · Quiz</div>
+  <h2 class="h-md rev">Quiz <em class="accent">relâmpago</em></h2>
+  <div class="quiz rev" style="margin-top:1.5rem">
+    <div class="qstep" id="qstep">Pergunta 1 de 4</div>
+    <div class="qq" id="qq"></div>
+    <div id="qopts"></div>
+    <div class="qfeed" id="qfeed"></div>
+    <button class="qnext" id="qnext" style="visibility:hidden">Próxima →</button>
+  </div>
+</section>
+
+<!-- 14 · RESUMO -->
+<section class="slide" data-label="Resumo">
+  <div class="kicker rev">13 · Para levar para casa</div>
+  <h2 class="h-lg rev" style="margin-bottom:1.6rem">Resumindo</h2>
+  <ul class="take rev" style="max-width:66rem">
+    <li><span class="tn">→</span><span class="tt">E-mail é o correio eletrônico: <em>rápido, gratuito</em> e com registro permanente.</span></li>
+    <li><span class="tn">→</span><span class="tt">WhatsApp conversa; <em class="accent">e-mail documenta.</em></span></li>
+    <li><span class="tn">→</span><span class="tt">Na empresa, o e-mail é o canal <em>formal, organizado</em> e com valor de prova.</span></li>
+  </ul>
+  <div class="rev" style="margin-top:2.4rem;display:flex;align-items:center;gap:1.4rem">
+    <span class="tag red" style="font-size:.78rem;padding:.5rem 1.1rem">Dúvidas?</span>
+    <span class="mono" style="font-size:.72rem;letter-spacing:.18em;color:var(--ink-3)">FIM · OBRIGADO PELA ATENÇÃO</span>
+  </div>
+</section>
+
+</main>
+
+<button class="navbtn prev" id="prev" aria-label="Anterior">←</button>
+<button class="navbtn next" id="next" aria-label="Próximo">→</button>
+<div class="hint" id="hint">← → navegar · F tela cheia</div>
+
+<script>
+/* grade pautada + furos de fichário (SVG, tracejado 1,5) */
+(function(){
+  const g=document.getElementById('gridlayer');
+  const w=innerWidth,h=innerHeight;
+  g.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  let s='';
+  for(let x=196;x<w;x+=196) s+=`<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="#0c0e0c" stroke-width="1" stroke-dasharray="1,5" opacity=".16"/>`;
+  for(let y=196;y<h;y+=196) s+=`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="#0c0e0c" stroke-width="1" stroke-dasharray="1,5" opacity=".10"/>`;
+  g.innerHTML=s;
+  const hh=document.getElementById('holes');
+  hh.setAttribute('viewBox',`0 0 14 ${h}`);
+  let c='';
+  for(let y=h*0.16;y<h*0.92;y+=h*0.19) c+=`<circle cx="7" cy="${y}" r="6" fill="#0c0e0c"/>`;
+  hh.innerHTML=c;
+})();
+
+/* motor de slides */
+const slides=[...document.querySelectorAll('.slide')];
+const total=slides.length;
+let cur=0, busy=false;
+
+const curnum=document.getElementById('curnum'),
+      ghost=document.getElementById('ghost'),
+      bar=document.getElementById('bar');
+
+function pad(n){return String(n+1).padStart(2,'0')}
+
+function go(n,dir){
+  if(busy||n===cur||n<0||n>=total) return;
+  busy=true;
+  const from=slides[cur], to=slides[n];
+  dir = dir || (n>cur?1:-1);
+  from.classList.remove('active','enter-left','enter-right');
+  from.classList.add(dir>0?'exit-left':'exit-right');
+  to.classList.remove('exit-left','exit-right','enter-left','enter-right');
+  void to.offsetWidth;
+  to.classList.add('active', dir>0?'enter-right':'enter-left');
+  cur=n;
+  curnum.textContent=pad(cur);
+  ghost.textContent=pad(cur);
+  bar.style.width=((cur+1)/total*100)+'%';
+  setTimeout(()=>{from.classList.remove('exit-left','exit-right');busy=false},820);
+}
+
+/* link direto: index.html#3 abre no slide 3 */
+const start=Math.min(Math.max(parseInt(location.hash.slice(1))||1,1),total)-1;
+if(start>0) document.body.classList.add('instant');
+cur=start;
+slides[cur].classList.add('active');
+curnum.textContent=pad(cur);ghost.textContent=pad(cur);
+bar.style.width=((cur+1)/total*100)+'%';
+
+document.getElementById('next').onclick=()=>go(cur+1,1);
+document.getElementById('prev').onclick=()=>go(cur-1,-1);
+
+addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();go(cur+1,1)}
+  if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(cur-1,-1)}
+  if(e.key==='Home')go(0,-1);
+  if(e.key==='End')go(total-1,1);
+  if(e.key.toLowerCase()==='f')toggleFS();
+});
+
+/* clique nas metades da tela */
+document.getElementById('stage').addEventListener('click',e=>{
+  if(e.target.closest('button'))return;
+  (e.clientX>innerWidth/2)?go(cur+1,1):go(cur-1,-1);
+});
+
+/* toque */
+let tx=0;
+addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx;
+  if(Math.abs(dx)>50) dx<0?go(cur+1,1):go(cur-1,-1);
+},{passive:true});
+
+/* roda do mouse (com trava) */
+let wlock=false;
+addEventListener('wheel',e=>{
+  if(wlock||Math.abs(e.deltaY)<24)return;
+  wlock=true;setTimeout(()=>wlock=false,900);
+  e.deltaY>0?go(cur+1,1):go(cur-1,-1);
+},{passive:true});
+
+/* tela cheia */
+function toggleFS(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+document.getElementById('fsbtn').onclick=toggleFS;
+
+/* quiz */
+const quizData=[
+ {q:"Qual campo envia uma cópia sem que os outros destinatários vejam?",opts:["Campo “Para”","Campo “Cc” (cópia)","Campo “Cco” (cópia oculta)"],a:2,f:"O <b>Cco</b> protege a privacidade de quem recebe — ninguém vê quem está nele."},
+ {q:"Qual provedor libera o Office 365 na web?",opts:["Gmail","Outlook","WhatsApp"],a:1,f:"A conta <b>@outlook.com</b> abre Word, Excel e PowerPoint direto no navegador."},
+ {q:"Qual endereço é o mais adequado para currículos e inscrições?",opts:["xxtopzeiroxx@gmail.com","maria.silva@gmail.com","princesinha.2010@gmail.com"],a:1,f:"<b>Nome.sobrenome</b>: sério, legível e fácil de lembrar."},
+ {q:"Recado rápido no corredor × aprovação de orçamento: qual canal para cada?",opts:["WhatsApp e e-mail","E-mail e e-mail","WhatsApp e WhatsApp"],a:0,f:"Conversa rápida = <b>WhatsApp</b>; registro formal = <b>e-mail</b>."}
+];
+let qi=0,qok=0,qdone=false;
+const qstep=document.getElementById('qstep'),qq=document.getElementById('qq'),
+      qopts=document.getElementById('qopts'),qfeed=document.getElementById('qfeed'),
+      qnext=document.getElementById('qnext');
+function qrender(){
+  const d=quizData[qi];
+  qstep.textContent=`Pergunta ${qi+1} de ${quizData.length}`;
+  qq.textContent=d.q;
+  qfeed.innerHTML='';
+  qnext.style.visibility='hidden';
+  qnext.textContent='Próxima →';
+  qopts.innerHTML='';
+  d.opts.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='qopt';
+    b.innerHTML=`<span>${String.fromCharCode(65+i)}) ${t}</span><span class="mark"></span>`;
+    b.onclick=()=>{
+      [...qopts.children].forEach((c,j)=>{
+        c.disabled=true;
+        if(j===d.a){c.classList.add('right');c.querySelector('.mark').textContent='✓'}
+        else if(c===b){c.classList.add('wrong');c.querySelector('.mark').textContent='✕'}
+      });
+      if(i===d.a)qok++;
+      qfeed.innerHTML=d.f;
+      qnext.style.visibility='visible';
+      if(qi===quizData.length-1)qnext.textContent='Ver resultado →';
+    };
+    qopts.appendChild(b);
+  });
+}
+qnext.onclick=()=>{
+  if(qdone){qi=0;qok=0;qdone=false;qrender();return}
+  if(qi<quizData.length-1){qi++;qrender()}
+  else{
+    qdone=true;
+    qstep.textContent='Fim do quiz';
+    qq.textContent=`Pontuação da turma: ${qok} de ${quizData.length}`;
+    qopts.innerHTML='';
+    qfeed.innerHTML='Discutam em voz alta: por que as outras alternativas estavam erradas?';
+    qnext.textContent='Recomeçar ↺';
+  }
+};
+qrender();
+
+/* some a dica após a primeira navegação */
+let hinted=false;
+const hint=document.getElementById('hint');
+const hideHint=()=>{if(!hinted){hinted=true;hint.style.opacity=0}};
+addEventListener('keydown',hideHint,{once:false});
+</script>
+</body>
+</html>
