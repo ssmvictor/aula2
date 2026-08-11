@@ -27,6 +27,7 @@ body{
   font-family:'Space Grotesk',sans-serif;
   overflow:hidden;
   height:100vh;
+  height:100dvh;
   -webkit-font-smoothing:antialiased;
 }
 ::selection{background:var(--accent);color:var(--paper)}
@@ -305,17 +306,56 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
 }
 .fsbtn:hover{background:var(--ink);color:var(--paper)}
 
-@media(max-width:900px){
-  .slide{padding:5.5rem 7vw 6rem 14vw}
+@media(max-width:900px),(max-height:600px) and (pointer:coarse){
+  html{font-size:clamp(14px,3.8vw,16px)}
+  .frame{inset:.65rem}
+  .holes{left:.35rem}
+  .chrome.tl{top:1.35rem;left:1.8rem;right:5rem;gap:.7rem;font-size:.62rem}
+  .chrome.tl span:last-child,.chrome.tr,.chrome.bl,.hint,.fsbtn{display:none}
+  .counter{right:1.35rem;bottom:1rem;font-size:1.5rem}
+  .counter .total{font-size:.7rem}
+  .slide{
+    bottom:calc(4.5rem + env(safe-area-inset-bottom));
+    justify-content:flex-start;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    padding:calc(4.5rem + env(safe-area-inset-top)) calc(1.35rem + env(safe-area-inset-right)) 1.5rem calc(1.8rem + env(safe-area-inset-left));
+  }
+  .kicker{margin-bottom:1rem;gap:.6rem}
+  .kicker::before{width:1.5rem}
+  .rule{margin:1.2rem 0}
+  .callout,.quiz{padding:1.1rem 1.2rem}
+  .mono,.mfield .fv{overflow-wrap:anywhere}
+  .legend{flex-direction:column;gap:1.1rem;margin-top:2rem}
+  .legend .item{max-width:none}
+  .mail-layout{grid-template-columns:1fr!important;gap:1rem!important}
+  .mfield{align-items:flex-start;gap:.45rem;flex-wrap:wrap}
+  .mfield .fk{min-width:3.6rem}
+  .fieldnotes .fn{display:grid;grid-template-columns:auto 1fr;gap:.25rem .7rem}
+  .fieldnotes .ft{min-width:0}
+  .fieldnotes .fd{grid-column:2}
   .duo{grid-template-columns:1fr}
-  .vgrid{grid-template-columns:repeat(2,1fr)}
-  .vcard{grid-column:span 1 !important;min-height:0}
-  .vs-head,.vs-row{grid-template-columns:6.5rem 1fr 1fr;gap:.8rem}
+  .vgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vcard{grid-column:span 1 !important;min-width:0;min-height:0}
+  .vs-head,.vs-row{grid-template-columns:1fr 1fr;gap:.5rem .8rem}
+  .vs-head>span:first-child,.vs-row .crit{grid-column:1/-1}
+  .numlist li{display:grid;grid-template-columns:auto 1fr;gap:.25rem .8rem}
   .numlist .t{min-width:0}
-  .numlist li{flex-wrap:wrap;gap:.4rem .9rem}
+  .numlist .d{grid-column:2}
+  .prov{grid-template-columns:1fr}
+  .provcard .phead{flex-wrap:wrap;gap:.35rem .8rem}
+  .check li{display:grid;grid-template-columns:auto 1fr;gap:.25rem .8rem}
+  .check .ct{min-width:0}
+  .check .cd{grid-column:2}
+  .take li{gap:1rem;align-items:flex-start}
+  .qopt{min-height:2.75rem}
+  .zapmsg{max-width:90%}
   .cover-at{display:none}
   .ghostnum{display:none}
-  .navbtn{display:none}
+  .navbtn{display:flex;top:auto;bottom:1rem;transform:none;background:var(--paper-hi)}
+  .navbtn.prev{left:calc(50% - 3.6rem)}
+  .navbtn.next{right:calc(50% - 3.6rem)}
 }
 </style>
 </head>
@@ -399,7 +439,7 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
 <section class="slide" data-label="Campos do e-mail">
   <div class="kicker rev">03 · A mensagem</div>
   <h2 class="h-md rev">Os campos de um <em class="accent">e-mail</em></h2>
-  <div class="rev" style="display:grid;grid-template-columns:1.2fr 1fr;gap:2.4rem;margin-top:1.6rem;align-items:start;max-width:72rem">
+  <div class="rev mail-layout" style="display:grid;grid-template-columns:1.2fr 1fr;gap:2.4rem;margin-top:1.6rem;align-items:start;max-width:72rem">
     <div class="mailwin">
       <div class="bar"><b></b><b></b><b></b><span>Nova mensagem</span></div>
       <div class="mfield"><span class="fk">Para</span><span class="fv">joao@empresa.com.br</span><span class="fb">01</span></div>
@@ -648,6 +688,7 @@ function go(n,dir){
   from.classList.remove('active','enter-left','enter-right');
   from.classList.add(dir>0?'exit-left':'exit-right');
   to.classList.remove('exit-left','exit-right','enter-left','enter-right');
+  to.scrollTop=0;
   void to.offsetWidth;
   to.classList.add('active', dir>0?'enter-right':'enter-left');
   cur=n;
@@ -668,9 +709,22 @@ bar.style.width=((cur+1)/total*100)+'%';
 document.getElementById('next').onclick=()=>go(cur+1,1);
 document.getElementById('prev').onclick=()=>go(cur-1,-1);
 
+function canScroll(dir){
+  const s=slides[cur];
+  return dir>0?s.scrollTop+s.clientHeight<s.scrollHeight-1:s.scrollTop>1;
+}
+
+function step(dir){
+  if(canScroll(dir))slides[cur].scrollBy({top:dir*innerHeight*.75,behavior:'smooth'});
+  else go(cur+dir,dir);
+}
+
 addEventListener('keydown',e=>{
-  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();go(cur+1,1)}
-  if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(cur-1,-1)}
+  if(e.target.closest('button'))return;
+  if(e.key==='ArrowRight'){e.preventDefault();go(cur+1,1)}
+  if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1,-1)}
+  if(['ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();step(1)}
+  if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();step(-1)}
   if(e.key==='Home')go(0,-1);
   if(e.key==='End')go(total-1,1);
   if(e.key.toLowerCase()==='f')toggleFS();
@@ -678,25 +732,32 @@ addEventListener('keydown',e=>{
 
 /* clique nas metades da tela */
 document.getElementById('stage').addEventListener('click',e=>{
-  if(e.target.closest('button'))return;
+  if(e.target.closest('button')||matchMedia('(pointer:coarse)').matches)return;
   (e.clientX>innerWidth/2)?go(cur+1,1):go(cur-1,-1);
 });
 
 /* toque */
-let tx=0;
-addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+let tx=0,ty=0,tblocked=false;
+addEventListener('touchstart',e=>{
+  tx=e.touches[0].clientX;ty=e.touches[0].clientY;
+  tblocked=!!e.target.closest('button');
+},{passive:true});
 addEventListener('touchend',e=>{
   const dx=e.changedTouches[0].clientX-tx;
-  if(Math.abs(dx)>50) dx<0?go(cur+1,1):go(cur-1,-1);
+  const dy=e.changedTouches[0].clientY-ty;
+  if(!tblocked&&Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)) dx<0?go(cur+1,1):go(cur-1,-1);
 },{passive:true});
 
 /* roda do mouse (com trava) */
 let wlock=false;
 addEventListener('wheel',e=>{
   if(wlock||Math.abs(e.deltaY)<24)return;
+  const dir=e.deltaY>0?1:-1;
+  if(canScroll(dir))return;
+  e.preventDefault();
   wlock=true;setTimeout(()=>wlock=false,900);
-  e.deltaY>0?go(cur+1,1):go(cur-1,-1);
-},{passive:true});
+  go(cur+dir,dir);
+},{passive:false});
 
 /* tela cheia */
 function toggleFS(){
