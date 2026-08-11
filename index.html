@@ -14,7 +14,7 @@
   --paper-lo:#b1c6b4;
   --ink:#0c0e0c;
   --ink-3:rgba(12,14,12,.82);
-  --accent:#c12547;
+  --accent:#a51c3a;
   --line:rgba(12,14,12,.3);
   --ease:cubic-bezier(.77,0,.175,1);
 }
@@ -31,6 +31,10 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 ::selection{background:var(--accent);color:var(--paper)}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
 
 /* ---------- camadas fixas: grade, furos, moldura ---------- */
 .gridlayer{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -72,6 +76,7 @@ body{
   visibility:hidden;opacity:0;
 }
 .slide.active{visibility:visible;opacity:1;z-index:2}
+.slide.exit-left,.slide.exit-right{visibility:visible;z-index:1}
 .slide.exit-left{animation:outL .8s var(--ease) both}
 .slide.exit-right{animation:outR .8s var(--ease) both}
 .slide.enter-left{animation:inL .8s var(--ease) both}
@@ -269,27 +274,28 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
 .quiz::before{content:"";position:absolute;inset:.35rem;border:1px dashed var(--line);pointer-events:none}
 .quiz .qstep{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
 .quiz .qq{font-weight:700;font-size:1.3rem;letter-spacing:-.01em;line-height:1.25;margin-bottom:1rem;max-width:30em}
-.qopt{display:flex;justify-content:space-between;align-items:center;gap:1rem;width:100%;text-align:left;background:var(--paper);border:1px solid var(--ink);padding:.75rem 1rem;font-family:'Space Grotesk',sans-serif;font-size:1.08rem;color:var(--ink);cursor:pointer;margin-bottom:.55rem;transition:transform .25s,background .25s,color .25s,opacity .25s}
+.qopt{display:flex;justify-content:space-between;align-items:center;gap:1rem;width:100%;min-height:44px;text-align:left;background:var(--paper);border:1px solid var(--ink);padding:.75rem 1rem;font-family:'Space Grotesk',sans-serif;font-size:1.08rem;color:var(--ink);cursor:pointer;margin-bottom:.55rem;transition:transform .25s,background .25s,color .25s,opacity .25s}
 .qopt:hover:not(:disabled){transform:translateX(.35rem)}
 .qopt .mark{font-family:'IBM Plex Mono',monospace;font-size:.8rem}
 .qopt.right{background:var(--ink);color:var(--paper)}
-.qopt.right .mark{color:var(--accent)}
+.qopt.right .mark{color:var(--paper)}
 .qopt.wrong{opacity:.4;text-decoration:line-through}
 .qopt:disabled{cursor:default}
 .qfeed{font-size:1.02rem;line-height:1.5;color:var(--ink);margin-top:.3rem;min-height:1.5rem}
 .qfeed b{color:var(--accent)}
-.qnext{margin-top:.6rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:.5rem 1rem;border-radius:99px;transition:background .3s,color .3s}
+.qnext{min-height:44px;margin-top:.6rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:.5rem 1rem;border-radius:99px;transition:background .3s,color .3s}
 .qnext:hover{background:var(--paper);color:var(--ink)}
 
 /* navegação */
 .navbtn{
   position:fixed;top:50%;transform:translateY(-50%);z-index:60;
-  width:3.2rem;height:3.2rem;border-radius:50%;border:1px solid var(--ink);
+  width:3.2rem;height:3.2rem;min-width:44px;min-height:44px;border-radius:50%;border:1px solid var(--ink);
   background:var(--paper);color:var(--ink);cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:background .3s,color .3s;font-size:1.14rem;
 }
-.navbtn:hover{background:var(--ink);color:var(--paper)}
+.navbtn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.navbtn:disabled{opacity:.35;cursor:not-allowed}
 .navbtn.prev{left:2.2rem}
 .navbtn.next{right:2.2rem}
 .hint{
@@ -306,13 +312,17 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
 }
 .fsbtn:hover{background:var(--ink);color:var(--paper)}
 
+@media(max-height:600px){
+  .slide{justify-content:flex-start;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+}
+
 @media(max-width:900px),(max-height:600px) and (pointer:coarse){
   html{font-size:clamp(14px,3.8vw,16px)}
   .frame{inset:.65rem}
   .holes{left:.35rem}
   .chrome.tl{top:1.35rem;left:1.8rem;right:5rem;gap:.7rem;font-size:.62rem}
   .chrome.tl span:last-child,.chrome.tr,.chrome.bl,.hint,.fsbtn{display:none}
-  .counter{right:1.35rem;bottom:1rem;font-size:1.5rem}
+  .counter{right:calc(1.35rem + env(safe-area-inset-right));bottom:calc(1rem + env(safe-area-inset-bottom));font-size:1.5rem}
   .counter .total{font-size:.7rem}
   .slide{
     bottom:calc(4.5rem + env(safe-area-inset-bottom));
@@ -349,38 +359,43 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
   .check .ct{min-width:0}
   .check .cd{grid-column:2}
   .take li{gap:1rem;align-items:flex-start}
-  .qopt{min-height:2.75rem}
   .zapmsg{max-width:90%}
   .cover-at{display:none}
   .ghostnum{display:none}
-  .navbtn{display:flex;top:auto;bottom:1rem;transform:none;background:var(--paper-hi)}
+  .navbtn{display:flex;top:auto;bottom:calc(1rem + env(safe-area-inset-bottom));transform:none;background:var(--paper-hi)}
   .navbtn.prev{left:calc(50% - 3.6rem)}
   .navbtn.next{right:calc(50% - 3.6rem)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .slide .rev{opacity:1;transform:none}
 }
 </style>
 </head>
 <body>
 
 <!-- grade pautada + furos de fichário -->
-<svg class="gridlayer" id="gridlayer" preserveAspectRatio="none"></svg>
-<svg class="holes" id="holes" width="14"></svg>
-<div class="frame"></div>
+<svg class="gridlayer" id="gridlayer" preserveAspectRatio="none" aria-hidden="true" focusable="false"></svg>
+<svg class="holes" id="holes" width="14" aria-hidden="true" focusable="false"></svg>
+<div class="frame" aria-hidden="true"></div>
 
 <!-- chrome fixo -->
 <div class="chrome tl"><span class="dot"></span><span>Aula de Informática</span><span style="color:var(--ink-3)">/ Comunicação digital</span></div>
 <div class="chrome tr">Prof. Victor · Turma RJ</div>
 <div class="chrome bl">E-mail · conceito, uso empresarial e criação de contas</div>
-<div class="counter"><span id="curnum">01</span><span class="total">/ 14</span></div>
+<div class="counter"><span id="curnum">01</span><span class="total" id="totalnum"></span></div>
+<div class="sr-only" id="slide-status" role="status" aria-live="polite" aria-atomic="true"></div>
 <div class="ghostnum" id="ghost">01</div>
-<button class="fsbtn" id="fsbtn">Tela cheia [F]</button>
+<button class="fsbtn" id="fsbtn" type="button" aria-pressed="false">Tela cheia [F]</button>
 
-<div class="progress"><i id="bar"></i></div>
+<div class="progress" id="progress" role="progressbar" aria-label="Progresso da apresentação" aria-valuemin="1"><i id="bar"></i></div>
 
 <main class="stage" id="stage">
 
 <!-- 1 · CAPA -->
 <section class="slide" data-label="Abertura">
-  <svg class="cover-at" viewBox="0 0 300 300" fill="none">
+  <svg class="cover-at" viewBox="0 0 300 300" fill="none" aria-hidden="true" focusable="false">
     <circle cx="150" cy="150" r="118" stroke="#0c0e0c" stroke-width="7"/>
     <circle cx="150" cy="150" r="126" stroke="#0c0e0c" stroke-width="2" stroke-dasharray="2 7" opacity=".45"/>
     <path d="M150 198c-31 0-52-20-52-48s21-48 52-48 52 20 52 48c0 24-13 36-26 36-9 0-15-6-15-15" stroke="#0c0e0c" stroke-width="7" stroke-linecap="round"/>
@@ -395,7 +410,7 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
     <div class="cover-meta rev">
       <span class="tag solid">Informática</span>
       <span class="tag">Teoria + prática</span>
-      <span class="tag red">14 telas · criaremos 2 contas hoje</span>
+      <span class="tag red"><span id="cover-total"></span> telas · criaremos 2 contas hoje</span>
     </div>
   </div>
 </section>
@@ -447,7 +462,7 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
       <div class="mfield"><span class="fk">Cco</span><span class="fv dim">(ninguém vê quem está aqui)</span><span class="fb">03</span></div>
       <div class="mfield"><span class="fk">Assunto</span><span class="fv">Relatório de vendas — julho</span><span class="fb">04</span></div>
       <div class="mbody">Prezado João, bom dia. Segue em anexo o relatório…<br><br>
-        <span class="chip"><svg width="10" height="11" viewBox="0 0 10 12" fill="none"><path d="M7.5 4.5 4.2 7.8c-.6.6-1.6.6-2.2 0-.6-.6-.6-1.6 0-2.2L6.8 1c1-1 2.6-1 3.6 0" stroke="#0c0e0c" stroke-width="1.2" stroke-linecap="round" transform="translate(-3 1)"/></svg>relatorio-vendas-julho.pdf</span>
+        <span class="chip"><svg width="10" height="11" viewBox="0 0 10 12" fill="none" aria-hidden="true" focusable="false"><path d="M7.5 4.5 4.2 7.8c-.6.6-1.6.6-2.2 0-.6-.6-.6-1.6 0-2.2L6.8 1c1-1 2.6-1 3.6 0" stroke="#0c0e0c" stroke-width="1.2" stroke-linecap="round" transform="translate(-3 1)"/></svg>relatorio-vendas-julho.pdf</span>
         <span class="fb" style="display:inline;margin-left:.6rem">05</span>
       </div>
     </div>
@@ -624,10 +639,10 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
   <h2 class="h-md rev">Quiz <em class="accent">relâmpago</em></h2>
   <div class="quiz rev" style="margin-top:1.5rem">
     <div class="qstep" id="qstep">Pergunta 1 de 4</div>
-    <div class="qq" id="qq"></div>
-    <div id="qopts"></div>
-    <div class="qfeed" id="qfeed"></div>
-    <button class="qnext" id="qnext" style="visibility:hidden">Próxima →</button>
+    <div class="qq" id="qq" tabindex="-1"></div>
+    <div id="qopts" role="group" aria-labelledby="qq"></div>
+    <div class="qfeed" id="qfeed" role="status" aria-live="polite" aria-atomic="true"></div>
+    <button class="qnext" id="qnext" type="button" style="visibility:hidden">Próxima →</button>
   </div>
 </section>
 
@@ -648,8 +663,8 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
 
 </main>
 
-<button class="navbtn prev" id="prev" aria-label="Anterior">←</button>
-<button class="navbtn next" id="next" aria-label="Próximo">→</button>
+<button class="navbtn prev" id="prev" type="button" aria-label="Anterior">←</button>
+<button class="navbtn next" id="next" type="button" aria-label="Próximo">→</button>
 <div class="hint" id="hint">← → navegar · F tela cheia</div>
 
 <script>
@@ -672,18 +687,45 @@ em,.it{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;le
 /* motor de slides */
 const slides=[...document.querySelectorAll('.slide')];
 const total=slides.length;
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let cur=0, busy=false;
 
 const curnum=document.getElementById('curnum'),
       ghost=document.getElementById('ghost'),
-      bar=document.getElementById('bar');
+      bar=document.getElementById('bar'),
+      totalnum=document.getElementById('totalnum'),
+      coverTotal=document.getElementById('cover-total'),
+      progress=document.getElementById('progress'),
+      slideStatus=document.getElementById('slide-status'),
+      prevBtn=document.getElementById('prev'),
+      nextBtn=document.getElementById('next');
+
+totalnum.textContent=`/ ${total}`;
+coverTotal.textContent=total;
+progress.setAttribute('aria-valuemax',total);
 
 function pad(n){return String(n+1).padStart(2,'0')}
 
+function syncNavigation(){
+  curnum.textContent=pad(cur);
+  ghost.textContent=pad(cur);
+  bar.style.width=((cur+1)/total*100)+'%';
+  progress.setAttribute('aria-valuenow',cur+1);
+  prevBtn.disabled=cur===0;
+  nextBtn.disabled=cur===total-1;
+  slides.forEach((slide,i)=>slide.setAttribute('aria-hidden',i===cur?'false':'true'));
+  slideStatus.textContent=`Slide ${cur+1} de ${total}: ${slides[cur].dataset.label}`;
+  if(location.hash!==`#${cur+1}`)history.replaceState(null,'',`#${cur+1}`);
+}
+
 function go(n,dir){
   if(busy||n===cur||n<0||n>=total) return;
+  document.body.classList.remove('instant');
   busy=true;
   const from=slides[cur], to=slides[n];
+  const focused=document.activeElement;
+  const moveFocus=from.contains(focused)||(focused===prevBtn&&n===0)||(focused===nextBtn&&n===total-1);
+  if(moveFocus)focused.blur();
   dir = dir || (n>cur?1:-1);
   from.classList.remove('active','enter-left','enter-right');
   from.classList.add(dir>0?'exit-left':'exit-right');
@@ -692,10 +734,13 @@ function go(n,dir){
   void to.offsetWidth;
   to.classList.add('active', dir>0?'enter-right':'enter-left');
   cur=n;
-  curnum.textContent=pad(cur);
-  ghost.textContent=pad(cur);
-  bar.style.width=((cur+1)/total*100)+'%';
-  setTimeout(()=>{from.classList.remove('exit-left','exit-right');busy=false},820);
+  syncNavigation();
+  if(moveFocus){
+    const heading=to.querySelector('h1,h2');
+    heading.tabIndex=-1;
+    heading.focus({preventScroll:true});
+  }
+  setTimeout(()=>{from.classList.remove('exit-left','exit-right');busy=false},reduceMotion.matches?0:820);
 }
 
 /* link direto: index.html#3 abre no slide 3 */
@@ -703,11 +748,10 @@ const start=Math.min(Math.max(parseInt(location.hash.slice(1))||1,1),total)-1;
 if(start>0) document.body.classList.add('instant');
 cur=start;
 slides[cur].classList.add('active');
-curnum.textContent=pad(cur);ghost.textContent=pad(cur);
-bar.style.width=((cur+1)/total*100)+'%';
+syncNavigation();
 
-document.getElementById('next').onclick=()=>go(cur+1,1);
-document.getElementById('prev').onclick=()=>go(cur-1,-1);
+nextBtn.onclick=()=>go(cur+1,1);
+prevBtn.onclick=()=>go(cur-1,-1);
 
 function canScroll(dir){
   const s=slides[cur];
@@ -715,18 +759,19 @@ function canScroll(dir){
 }
 
 function step(dir){
-  if(canScroll(dir))slides[cur].scrollBy({top:dir*innerHeight*.75,behavior:'smooth'});
+  if(canScroll(dir))slides[cur].scrollBy({top:dir*innerHeight*.75,behavior:reduceMotion.matches?'auto':'smooth'});
   else go(cur+dir,dir);
 }
 
 addEventListener('keydown',e=>{
-  if(e.target.closest('button'))return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.target.closest?.('button')&&[' ','Enter'].includes(e.key))return;
   if(e.key==='ArrowRight'){e.preventDefault();go(cur+1,1)}
   if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1,-1)}
   if(['ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();step(1)}
   if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();step(-1)}
-  if(e.key==='Home')go(0,-1);
-  if(e.key==='End')go(total-1,1);
+  if(e.key==='Home'){e.preventDefault();go(0,-1)}
+  if(e.key==='End'){e.preventDefault();go(total-1,1)}
   if(e.key.toLowerCase()==='f')toggleFS();
 });
 
@@ -738,6 +783,7 @@ document.getElementById('stage').addEventListener('click',e=>{
 
 /* toque */
 let tx=0,ty=0,tblocked=false;
+function isHorizontalSwipe(dx,dy){return Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)}
 addEventListener('touchstart',e=>{
   tx=e.touches[0].clientX;ty=e.touches[0].clientY;
   tblocked=!!e.target.closest('button');
@@ -745,7 +791,7 @@ addEventListener('touchstart',e=>{
 addEventListener('touchend',e=>{
   const dx=e.changedTouches[0].clientX-tx;
   const dy=e.changedTouches[0].clientY-ty;
-  if(!tblocked&&Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)) dx<0?go(cur+1,1):go(cur-1,-1);
+  if(!tblocked&&isHorizontalSwipe(dx,dy)) dx<0?go(cur+1,1):go(cur-1,-1);
 },{passive:true});
 
 /* roda do mouse (com trava) */
@@ -764,7 +810,13 @@ function toggleFS(){
   if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
   else document.exitFullscreen?.();
 }
-document.getElementById('fsbtn').onclick=toggleFS;
+const fsbtn=document.getElementById('fsbtn');
+fsbtn.onclick=toggleFS;
+addEventListener('fullscreenchange',()=>{
+  const active=!!document.fullscreenElement;
+  fsbtn.setAttribute('aria-pressed',active);
+  fsbtn.textContent=active?'Sair da tela cheia [F]':'Tela cheia [F]';
+});
 
 /* quiz */
 const quizData=[
@@ -777,7 +829,7 @@ let qi=0,qok=0,qdone=false;
 const qstep=document.getElementById('qstep'),qq=document.getElementById('qq'),
       qopts=document.getElementById('qopts'),qfeed=document.getElementById('qfeed'),
       qnext=document.getElementById('qnext');
-function qrender(){
+function qrender(focusQuestion=false){
   const d=quizData[qi];
   qstep.textContent=`Pergunta ${qi+1} de ${quizData.length}`;
   qq.textContent=d.q;
@@ -787,6 +839,7 @@ function qrender(){
   qopts.innerHTML='';
   d.opts.forEach((t,i)=>{
     const b=document.createElement('button');
+    b.type='button';
     b.className='qopt';
     b.innerHTML=`<span>${String.fromCharCode(65+i)}) ${t}</span><span class="mark"></span>`;
     b.onclick=()=>{
@@ -799,13 +852,15 @@ function qrender(){
       qfeed.innerHTML=d.f;
       qnext.style.visibility='visible';
       if(qi===quizData.length-1)qnext.textContent='Ver resultado →';
+      qnext.focus({preventScroll:true});
     };
     qopts.appendChild(b);
   });
+  if(focusQuestion)qq.focus();
 }
 qnext.onclick=()=>{
-  if(qdone){qi=0;qok=0;qdone=false;qrender();return}
-  if(qi<quizData.length-1){qi++;qrender()}
+  if(qdone){qi=0;qok=0;qdone=false;qrender(true);return}
+  if(qi<quizData.length-1){qi++;qrender(true)}
   else{
     qdone=true;
     qstep.textContent='Fim do quiz';
@@ -813,9 +868,22 @@ qnext.onclick=()=>{
     qopts.innerHTML='';
     qfeed.innerHTML='Discutam em voz alta: por que as outras alternativas estavam erradas?';
     qnext.textContent='Recomeçar ↺';
+    qq.focus();
   }
 };
 qrender();
+
+function selfCheck(){
+  const visible=slides.filter(slide=>slide.getAttribute('aria-hidden')==='false');
+  const ok=totalnum.textContent===`/ ${total}`&&coverTotal.textContent===String(total)&&
+    visible.length===1&&visible[0]===slides[cur]&&
+    prevBtn.disabled===(cur===0)&&nextBtn.disabled===(cur===total-1)&&
+    !document.activeElement.closest?.('.slide[aria-hidden="true"]')&&
+    isHorizontalSwipe(51,0)&&!isHorizontalSwipe(51,52);
+  if(!ok)throw new Error('Falha na autoverificação da apresentação');
+  return 'Autoverificação concluída';
+}
+if(new URLSearchParams(location.search).has('self-test'))console.info(selfCheck());
 
 /* some a dica após a primeira navegação */
 let hinted=false;
